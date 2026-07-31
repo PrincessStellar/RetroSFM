@@ -9,5 +9,6 @@ public final class RFMClient {
 
     public static void init(IEventBus bus) {
         RFMTextEditors.register(bus);
+        RFMDefaultEditorHandler.init(bus);
     }
 }

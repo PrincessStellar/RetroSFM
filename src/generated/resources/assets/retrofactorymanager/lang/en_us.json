@@ -5,6 +5,7 @@
   "error.retrofactorymanager.no_input_pin": "Target node has no input pin",
   "error.retrofactorymanager.node_missing": "Node no longer exists",
   "error.retrofactorymanager.self_connect": "Cannot connect a node to itself",
+  "gui.sfm.preferred_editor.retrofactorymanager.blueprint": "Blueprint (RFM)",
   "gui.retrofactorymanager.add": "Add",
   "gui.retrofactorymanager.add_condition": "+ Add",
   "gui.retrofactorymanager.add_filter": "+ Add filter",

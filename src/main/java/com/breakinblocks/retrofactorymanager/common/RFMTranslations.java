@@ -46,6 +46,7 @@ public final class RFMTranslations {
     }
 
     public static final Entry TITLE = gui("title", "Blueprint Editor");
+    public static final Entry SFM_EDITOR_NAME = add("gui.sfm.preferred_editor.retrofactorymanager.blueprint", "Blueprint (RFM)");
     public static final Entry SAVE_CLOSE = gui("save_close", "Save & Close");
     public static final Entry SFML_PREVIEW = gui("sfml_preview", "SFML Preview");
     public static final Entry CANCEL = gui("cancel", "Cancel");

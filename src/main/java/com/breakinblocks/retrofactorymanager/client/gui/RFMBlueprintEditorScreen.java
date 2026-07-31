@@ -2,6 +2,7 @@ package com.breakinblocks.retrofactorymanager.client.gui;
 
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
+import ca.teamdman.sfm.client.screen.widget.SFMPreferredEditorDropdown;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
@@ -270,17 +271,25 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 .pos(126, y)
                 .size(96, 20)
                 .build());
+        addRenderableWidget(SFMPreferredEditorDropdown.createForEditor(
+                230,
+                y,
+                110,
+                20,
+                this,
+                this::buildContent
+        ));
         addRenderableWidget(Button.builder(
                         RFMTranslations.CANCEL.component(),
                         button -> onClose())
-                .pos(230, y)
+                .pos(348, y)
                 .size(70, 20)
                 .build());
         if (importable != null) {
             importButton = addRenderableWidget(Button.builder(
                             RFMTranslations.IMPORT_PROGRAM.component(),
                             button -> applyImport())
-                    .pos(308, y)
+                    .pos(426, y)
                     .size(150, 20)
                     .build());
         }
