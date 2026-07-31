@@ -1,6 +1,6 @@
-# RetroFactoryManager
+# Retro Super Factory Manager
 
-A visual programming addon for [Super Factory Manager](https://github.com/TeamDman/SuperFactoryManager). Build your factory logic by placing nodes and connecting wires, the same way you would in Unreal Engine Blueprints, and RetroFactoryManager writes the SFML program for you.
+A visual programming addon for [Super Factory Manager](https://github.com/TeamDman/SuperFactoryManager). Build your factory logic by placing nodes and connecting wires, the same way you would in Unreal Engine Blueprints, and Retro Super Factory Manager writes the SFML program for you.
 
 The original Steve's Factory Manager from the 1.7.10 era let you automate everything with a visual flowchart. Modern SFM replaced that with SFML, a powerful text language. This mod brings the visual style back on top of modern SFM. That is the "Retro" part: retro idea, modern editor.
 
@@ -31,17 +31,18 @@ When you save, the generated program is stored on the disk just like a normal SF
 
 ## How to use it
 
-1. Install Super Factory Manager and RetroFactoryManager
-2. Open the file `config/sfm-client-program-editor.toml` in your instance folder
-3. Set the editor to the blueprint canvas:
+1. Install Super Factory Manager and Retro Super Factory Manager
+2. Right click a Disk, or press the edit button in a Factory Manager, and the canvas opens
 
-   ```toml
-   preferredEditor = "retrofactorymanager:blueprint"
-   ```
+That is it. The blueprint canvas registers itself as your preferred editor the first time you launch the game.
 
-4. Right click a Disk, or press the edit button in a Factory Manager, and the canvas opens
+If you decide you prefer the text editor every screen has an editor selector. The `Editor` dropdown above the Edit button in the Factory Manager, and a matching dropdown inside each editor, so you can hop between the blueprint canvas and SFM's text editors whenever you like. Switching even carries your work-in-progress program into the new editor. Once you pick a different editor your choice will be remembered across future restarts.
 
-SFM plans to add an in game editor picker. Until then the config file is how you switch editors, and you can switch back to the text editor the same way.
+If you ever want the canvas back as your default, just pick `Blueprint (RFM)` from any editor dropdown, or set this in `config/retrofactorymanager-client.toml`:
+
+```toml
+setBlueprintAsDefaultEditor = true
+```
 
 ## Controls
 
@@ -72,7 +73,7 @@ SFM plans to add an in game editor picker. Until then the config file is how you
 
 ## Building from source
 
-Clone the repository and run `./gradlew build`. The jar lands in `build/libs`. Super Factory Manager is pulled automatically from its Modrinth release, so there is nothing to download by hand.
+Clone the repository and run `./gradlew build`. The built jar will end up in `build/libs`.
 
 ## License
 
