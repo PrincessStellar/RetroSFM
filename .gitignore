@@ -1,0 +1,16 @@
+.gradle/
+build/
+runs/
+run/
+libs/
+.idea/
+*.iml
+.vscode/
+eclipse/
+bin/
+*.md
+!README.md
+!CHANGELOG.md
+!LICENSE.md
+
+src/generated/resources/.cache/
