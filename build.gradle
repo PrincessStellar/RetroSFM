@@ -69,6 +69,8 @@ publishMods {
         projectId = curseforge_project_id
         accessToken = providers.environmentVariable('CURSEFORGE_TOKEN')
         minecraftVersions.add(minecraft_version)
+        clientRequired = true
+        serverRequired = false
         requires { slug = 'super-factory-manager' }
     }
 
