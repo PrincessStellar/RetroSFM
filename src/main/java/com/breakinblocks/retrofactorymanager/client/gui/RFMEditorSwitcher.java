@@ -11,12 +11,11 @@ import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import com.breakinblocks.retrofactorymanager.common.RFMTranslations;
 import com.breakinblocks.retrofactorymanager.config.RFMConfig;
 import com.breakinblocks.retrofactorymanager.integration.RFMTextEditors;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -102,17 +101,17 @@ public final class RFMEditorSwitcher {
         }
     }
 
-    private static Component getDisplayName(Identifier id) {
+    static Component getDisplayName(ResourceLocation id) {
         return Component.translatableWithFallback(
                 "gui.sfm.preferred_editor." + id.getNamespace() + "." + id.getPath(),
                 id.toString()
         );
     }
 
-    private static List<Identifier> getEditorIds() {
-        List<Identifier> editorIds = new ArrayList<>();
+    static List<ResourceLocation> getEditorIds() {
+        List<ResourceLocation> editorIds = new ArrayList<>();
         for (ISFMTextEditorRegistration registration : SFMTextEditors.registry()) {
-            Identifier id = SFMTextEditors.registry().getId(registration);
+            ResourceLocation id = SFMTextEditors.registry().getId(registration);
             if (id != null) {
                 editorIds.add(id);
             }
@@ -120,9 +119,9 @@ public final class RFMEditorSwitcher {
         return editorIds;
     }
 
-    private static Identifier getCurrentEditorId() {
-        List<Identifier> editorIds = getEditorIds();
-        @Nullable Identifier current = SFMResourceLocation.tryParse(
+    static ResourceLocation getCurrentEditorId() {
+        List<ResourceLocation> editorIds = getEditorIds();
+        @Nullable ResourceLocation current = SFMResourceLocation.tryParse(
                 SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.get()
         );
         if (current == null || !editorIds.contains(current)) {
@@ -131,8 +130,18 @@ public final class RFMEditorSwitcher {
         return current;
     }
 
-    private static Component buttonMessage(Identifier id) {
+    private static Component buttonMessage(ResourceLocation id) {
         return getDisplayName(id).copy().append(" ▼");
+    }
+
+    static void applyEditorSelection(ResourceLocation id) {
+        SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.set(id.toString());
+        SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.save();
+        boolean isBlueprint = RFMTextEditors.BLUEPRINT.getId().equals(id);
+        if (RFMConfig.CLIENT.setBlueprintAsDefaultEditor.get() != isBlueprint) {
+            RFMConfig.CLIENT.setBlueprintAsDefaultEditor.set(isBlueprint);
+            RFMConfig.CLIENT.setBlueprintAsDefaultEditor.save();
+        }
     }
 
     private static class PickerScreen extends Screen {
@@ -140,9 +149,9 @@ public final class RFMEditorSwitcher {
         private final int anchorY;
         private final int anchorWidth;
         private final int anchorHeight;
-        private final Consumer<Identifier> onSelect;
-        private List<Identifier> editorIds = List.of();
-        private Identifier currentEditorId;
+        private final Consumer<ResourceLocation> onSelect;
+        private List<ResourceLocation> editorIds = List.of();
+        private ResourceLocation currentEditorId;
         private int popupX;
         private int popupY;
         private int popupWidth;
@@ -154,7 +163,7 @@ public final class RFMEditorSwitcher {
                 int anchorY,
                 int anchorWidth,
                 int anchorHeight,
-                Consumer<Identifier> onSelect
+                Consumer<ResourceLocation> onSelect
         ) {
             super(RFMTranslations.SFM_PREFERRED_EDITOR.component());
             this.anchorX = anchorX;
@@ -165,18 +174,13 @@ public final class RFMEditorSwitcher {
         }
 
         @Override
-        public boolean isInGameUi() {
-            return true;
-        }
-
-        @Override
         protected void init() {
             super.init();
             editorIds = getEditorIds();
             currentEditorId = getCurrentEditorId();
             rowHeight = this.font.lineHeight + 4;
             popupWidth = anchorWidth;
-            for (Identifier id : editorIds) {
+            for (ResourceLocation id : editorIds) {
                 popupWidth = Math.max(popupWidth, this.font.width(getDisplayName(id)) + 2 * PANEL_PADDING + 8);
             }
             popupHeight = editorIds.size() * rowHeight + 2 * PANEL_PADDING;
@@ -186,13 +190,13 @@ public final class RFMEditorSwitcher {
         }
 
         @Override
-        public void extractRenderState(
-                GuiGraphicsExtractor graphics,
+        public void render(
+                GuiGraphics graphics,
                 int mouseX,
                 int mouseY,
                 float partialTick
         ) {
-            super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+            super.render(graphics, mouseX, mouseY, partialTick);
             graphics.fill(
                     popupX - 1,
                     popupY - 1,
@@ -209,7 +213,7 @@ public final class RFMEditorSwitcher {
             );
             int hoveredIndex = rowIndexAt(mouseX, mouseY);
             for (int i = 0; i < editorIds.size(); i++) {
-                Identifier id = editorIds.get(i);
+                ResourceLocation id = editorIds.get(i);
                 int rowY = popupY + PANEL_PADDING + i * rowHeight;
                 if (i == hoveredIndex) {
                     graphics.fill(
@@ -223,13 +227,13 @@ public final class RFMEditorSwitcher {
                 int color = id.equals(currentEditorId)
                             ? TEXT_COLOR_CURRENT
                             : i == hoveredIndex ? TEXT_COLOR_HOVERED : TEXT_COLOR;
-                graphics.text(this.font, getDisplayName(id), popupX + PANEL_PADDING + 4, rowY + 2, color);
+                graphics.drawString(this.font, getDisplayName(id), popupX + PANEL_PADDING + 4, rowY + 2, color);
             }
         }
 
         @Override
-        public void extractBackground(
-                GuiGraphicsExtractor graphics,
+        public void renderBackground(
+                GuiGraphics graphics,
                 int mouseX,
                 int mouseY,
                 float partialTick
@@ -252,21 +256,16 @@ public final class RFMEditorSwitcher {
 
         @Override
         public boolean mouseClicked(
-                MouseButtonEvent event,
-                boolean doubleClick
+                double mouseX,
+                double mouseY,
+                int button
         ) {
-            int index = rowIndexAt(event.x(), event.y());
+            int index = rowIndexAt(mouseX, mouseY);
             this.onClose();
             if (index >= 0) {
-                Identifier id = editorIds.get(index);
+                ResourceLocation id = editorIds.get(index);
                 if (!id.equals(currentEditorId)) {
-                    SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.set(id.toString());
-                    SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.save();
-                    boolean isBlueprint = RFMTextEditors.BLUEPRINT.getId().equals(id);
-                    if (RFMConfig.CLIENT.setBlueprintAsDefaultEditor.get() != isBlueprint) {
-                        RFMConfig.CLIENT.setBlueprintAsDefaultEditor.set(isBlueprint);
-                        RFMConfig.CLIENT.setBlueprintAsDefaultEditor.save();
-                    }
+                    applyEditorSelection(id);
                     onSelect.accept(id);
                 }
             }

@@ -12,7 +12,7 @@ base {
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
 }
 
 runs {
@@ -28,7 +28,6 @@ runs {
         arguments.add '--nogui'
     }
     data {
-        runType 'clientData'
         arguments.addAll '--mod', mod_id, '--all',
                 '--output', file('src/generated/resources/').absolutePath,
                 '--existing', file('src/main/resources/').absolutePath

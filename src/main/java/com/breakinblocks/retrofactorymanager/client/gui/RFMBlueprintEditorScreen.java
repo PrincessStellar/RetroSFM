@@ -25,16 +25,14 @@ import com.breakinblocks.retrofactorymanager.data.NodeType;
 import com.breakinblocks.retrofactorymanager.data.PinRole;
 import com.breakinblocks.retrofactorymanager.data.SfmlGenerator;
 import com.breakinblocks.retrofactorymanager.data.SfmlImporter;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.Mth;
@@ -313,8 +311,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
     }
 
     @Override
-    public boolean isInGameUi() {
-        return true;
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
     }
 
     private void regenerate() {
@@ -1351,7 +1348,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 if (item == Items.AIR) {
                     continue;
                 }
-                Identifier key = BuiltInRegistries.ITEM.getKey(item);
+                ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
                 ItemStack stack = new ItemStack(item);
                 addEntry(entries, key.toString(), stack.getHoverName().getString(), stack);
             }
@@ -1376,7 +1373,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         }
         for (ResourceType<?, ?, ?> type : registry) {
             try {
-                Identifier typeId = registry.getId(type);
+                ResourceLocation typeId = registry.getId(type);
                 if (typeId == null
                         || typeId.getPath().equals("item")
                         || !(type instanceof RegistryBackedResourceType<?, ?, ?> backed)) {
@@ -1384,7 +1381,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 }
                 String prefix = (typeId.getNamespace().equals(SFM_NAMESPACE) ? "" : typeId.getNamespace() + ":")
                         + typeId.getPath() + ":";
-                for (Identifier key : backed.getRegistryKeys()) {
+                for (ResourceLocation key : backed.getRegistryKeys()) {
                     String id = prefix + key.getNamespace() + ":" + key.getPath();
                     ItemStack icon = null;
                     try {
@@ -1517,7 +1514,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         }
     }
 
-    private void renderSuggestions(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+    private void renderSuggestions(GuiGraphics graphics, int mouseX, int mouseY) {
         if (suggestions.isEmpty()) {
             return;
         }
@@ -1534,14 +1531,14 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             }
             ItemEntry entry = suggestions.get(i);
             if (entry.stack() != null && !entry.stack().isEmpty()) {
-                graphics.item(entry.stack(), x0 + 2, rowY + 1);
+                graphics.renderItem(entry.stack(), x0 + 2, rowY + 1);
             } else {
                 graphics.fill(x0 + 5, rowY + 4, x0 + 15, rowY + 14, CHECKBOX_BORDER);
                 graphics.fill(x0 + 6, rowY + 5, x0 + 14, rowY + 13, PALETTE_BACKGROUND);
             }
             int textWidth = x1 - x0 - 26;
-            graphics.text(font, Component.literal(truncateToWidth(entry.name(), textWidth)), x0 + 22, rowY + 1, TEXT_PRIMARY);
-            graphics.text(font, Component.literal(truncateToWidth(entry.id(), textWidth)), x0 + 22, rowY + 10, TEXT_MUTED);
+            graphics.drawString(font, Component.literal(truncateToWidth(entry.name(), textWidth)), x0 + 22, rowY + 1, TEXT_PRIMARY);
+            graphics.drawString(font, Component.literal(truncateToWidth(entry.id(), textWidth)), x0 + 22, rowY + 10, TEXT_MUTED);
         }
     }
 
@@ -1648,10 +1645,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        double mouseX = event.x();
-        double mouseY = event.y();
-        int button = event.button();
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (paletteOpen) {
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && inPalette(mouseX, mouseY)) {
                 int index = (int) ((mouseY - paletteY - PALETTE_HEADER_HEIGHT) / PALETTE_ROW_HEIGHT);
@@ -1685,7 +1679,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             }
             clearSuggestions();
         }
-        if (super.mouseClicked(event, doubleClick)) {
+        if (super.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
         if (inDock(mouseX)) {
@@ -1719,7 +1713,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             PinHit pin = findPin(mouseX, mouseY);
             if (pin != null) {
-                if (event.hasAltDown()) {
+                if (hasAltDown()) {
                     if (graph.disconnect(pin.nodeId(), pin.role())) {
                         markEdited();
                     }
@@ -1733,7 +1727,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 return true;
             }
             BlueprintNode node = findNode(mouseX, mouseY);
-            if (node == null && event.hasAltDown()) {
+            if (node == null && hasAltDown()) {
                 BlueprintEdge wire = findWire(mouseX, mouseY);
                 if (wire != null && graph.removeEdge(wire)) {
                     hoveredWire = null;
@@ -1742,7 +1736,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 }
             }
             if (node != null) {
-                boolean additive = event.hasShiftDown() || event.hasControlDown();
+                boolean additive = hasShiftDown() || hasControlDown();
                 if (additive) {
                     if (!selection.remove(node.id())) {
                         selection.add(node.id());
@@ -1767,7 +1761,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 return true;
             }
             dragMode = DragMode.BOX;
-            boxAdditive = event.hasShiftDown();
+            boxAdditive = hasShiftDown();
             boxStartX = screenToCanvasX(mouseX);
             boxStartY = screenToCanvasY(mouseY);
             boxCurrentX = boxStartX;
@@ -1880,9 +1874,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-        double mouseX = event.x();
-        double mouseY = event.y();
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         switch (dragMode) {
             case PAN_MMB, PAN_RMB -> {
                 if (Math.abs(mouseX - panAnchorMouseX) + Math.abs(mouseY - panAnchorMouseY) > 3) {
@@ -1917,15 +1909,13 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 return true;
             }
             default -> {
-                return super.mouseDragged(event, dragX, dragY);
+                return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
             }
         }
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
-        double mouseX = event.x();
-        double mouseY = event.y();
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
         DragMode mode = dragMode;
         dragMode = DragMode.NONE;
         switch (mode) {
@@ -1952,7 +1942,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 return true;
             }
             default -> {
-                return super.mouseReleased(event);
+                return super.mouseReleased(mouseX, mouseY, button);
             }
         }
     }
@@ -2051,8 +2041,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
-        int keyCode = event.key();
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_ESCAPE && paletteOpen) {
             paletteOpen = false;
             return true;
@@ -2061,19 +2050,19 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             clearSuggestions();
             return true;
         }
-        if (event.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
-            if (event.hasShiftDown()) {
+        if (hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
+            if (hasShiftDown()) {
                 redo();
             } else {
                 undo();
             }
             return true;
         }
-        if (event.hasControlDown() && keyCode == GLFW.GLFW_KEY_Y) {
+        if (hasControlDown() && keyCode == GLFW.GLFW_KEY_Y) {
             redo();
             return true;
         }
-        if (event.hasControlDown() && !(getFocused() instanceof EditBox)) {
+        if (hasControlDown() && !(getFocused() instanceof EditBox)) {
             if (keyCode == GLFW.GLFW_KEY_C) {
                 copySelection();
                 return true;
@@ -2119,7 +2108,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                     return true;
                 }
             }
-            return super.keyPressed(event);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
         if ((keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) && !selection.isEmpty()) {
             graph.removeNodes(new ArrayList<>(selection));
@@ -2132,7 +2121,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             frameAll();
             return true;
         }
-        return super.keyPressed(event);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -2147,7 +2136,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         if (needsInspectorRefresh) {
             needsInspectorRefresh = false;
             rebuildInspector();
@@ -2160,31 +2149,31 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         renderBoxSelect(graphics);
         renderDock(graphics, mouseX, mouseY);
         renderHud(graphics);
-        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        super.render(graphics, mouseX, mouseY, partialTick);
         renderSuggestions(graphics, mouseX, mouseY);
         renderPalette(graphics, mouseX, mouseY);
-        extractTooltips(graphics, mouseX, mouseY);
+        renderTooltips(graphics, mouseX, mouseY);
     }
 
-    private void extractTooltips(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+    private void renderTooltips(GuiGraphics graphics, int mouseX, int mouseY) {
         if (paletteOpen || !suggestions.isEmpty() || dragMode != DragMode.NONE) {
             return;
         }
         if (inDock(mouseX)) {
             List<Component> dockTooltip = dockTooltipAt(mouseX, mouseY + dockScroll);
             if (dockTooltip != null && !dockTooltip.isEmpty()) {
-                graphics.setTooltipForNextFrame(font, dockTooltip, Optional.empty(), mouseX, mouseY);
+                graphics.renderTooltip(font, dockTooltip, Optional.empty(), mouseX, mouseY);
             }
             return;
         }
         PinHit pin = findPin(mouseX, mouseY);
         if (pin != null) {
-            graphics.setTooltipForNextFrame(pinTooltip(pin.role()), mouseX, mouseY);
+            graphics.renderTooltip(font, pinTooltip(pin.role()), mouseX, mouseY);
             return;
         }
         BlueprintNode node = findNode(mouseX, mouseY);
         if (node != null) {
-            graphics.setTooltipForNextFrame(font, nodeTooltip(node), Optional.empty(), mouseX, mouseY);
+            graphics.renderTooltip(font, nodeTooltip(node), Optional.empty(), mouseX, mouseY);
         }
     }
 
@@ -2281,7 +2270,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         return index >= 0 && index < values.size() ? values.get(index) : null;
     }
 
-    private void renderGrid(GuiGraphicsExtractor graphics) {
+    private void renderGrid(GuiGraphics graphics) {
         double step = BASE_GRID_STEP;
         while (step * zoom < MIN_GRID_PIXEL_STEP) {
             step *= 2.0D;
@@ -2321,7 +2310,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         };
     }
 
-    private void renderEdges(GuiGraphicsExtractor graphics) {
+    private void renderEdges(GuiGraphics graphics) {
         for (BlueprintEdge edge : graph.edges()) {
             BlueprintNode from = graph.node(edge.fromNode());
             BlueprintNode to = graph.node(edge.toNode());
@@ -2349,7 +2338,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         return null;
     }
 
-    private void renderWireDrag(GuiGraphicsExtractor graphics) {
+    private void renderWireDrag(GuiGraphics graphics) {
         if (dragMode != DragMode.WIRE || wireFromNode == null) {
             return;
         }
@@ -2368,7 +2357,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         }
     }
 
-    private void drawWire(GuiGraphicsExtractor graphics, double x0, double y0, double x1, double y1, int color) {
+    private void drawWire(GuiGraphics graphics, double x0, double y0, double x1, double y1, int color) {
         double distance = Math.abs(x1 - x0) + Math.abs(y1 - y0);
         double tangent = wireTangent(x0, x1);
         double c0x = x0 + tangent;
@@ -2396,7 +2385,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         };
     }
 
-    private void renderNodes(GuiGraphicsExtractor graphics) {
+    private void renderNodes(GuiGraphics graphics) {
         for (BlueprintNode node : graph.nodes()) {
             NodeLayout layout = NodeLayout.of(node, font);
             int sx = (int) Math.round(canvasToScreenX(node.x()));
@@ -2419,9 +2408,9 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             graphics.fill(sx, sy, sx + sw, sy + headerH, headerColor(node.type().category()));
             graphics.fill(sx, sy + headerH, sx + sw, sy + sh, NODE_BODY);
 
-            graphics.pose().pushMatrix();
-            graphics.pose().translate((float) canvasToScreenX(node.x()), (float) canvasToScreenY(node.y()));
-            graphics.pose().scale((float) zoom, (float) zoom);
+            graphics.pose().pushPose();
+            graphics.pose().translate(canvasToScreenX(node.x()), canvasToScreenY(node.y()), 0.0D);
+            graphics.pose().scale((float) zoom, (float) zoom, 1.0F);
             drawText(graphics, Component.translatable(node.type().translationKey()), 5, 3, TEXT_PRIMARY);
             List<Component> summary = layout.summaryLines();
             for (int i = 0; i < summary.size(); i++) {
@@ -2434,7 +2423,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                     drawText(graphics, pinLabel, labelX, (int) (pin.dy() - 4), TEXT_MUTED);
                 }
             }
-            graphics.pose().popMatrix();
+            graphics.pose().popPose();
 
             if (hasError || hasWarning) {
                 int badgeSize = Math.max(7, (int) Math.round(9 * zoom));
@@ -2444,7 +2433,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 graphics.fill(badgeX - 1, badgeY - 1, badgeX + badgeSize + 1, badgeY + badgeSize + 1, PIN_BORDER);
                 graphics.fill(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize, badgeColor);
                 if (badgeSize >= 8) {
-                    graphics.text(font, Component.literal("!"), badgeX + badgeSize / 2 - 1, badgeY, 0xFF10151A);
+                    graphics.drawString(font, Component.literal("!"), badgeX + badgeSize / 2 - 1, badgeY, 0xFF10151A);
                 }
             }
             for (NodeLayout.PinSpot pin : layout.pins()) {
@@ -2471,15 +2460,15 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         return role.isOutput();
     }
 
-    private void drawText(GuiGraphicsExtractor graphics, Component text, int x, int y, int color) {
-        graphics.textRenderer().accept(x, y, text.copy().withStyle(style -> style.withColor(color & 0xFFFFFF)));
+    private void drawText(GuiGraphics graphics, Component text, int x, int y, int color) {
+        graphics.drawString(font, text, x, y, color, false);
     }
 
     private Component onOffText(boolean value) {
         return (value ? RFMTranslations.ON : RFMTranslations.OFF).component();
     }
 
-    private void renderBoxSelect(GuiGraphicsExtractor graphics) {
+    private void renderBoxSelect(GuiGraphics graphics) {
         if (dragMode != DragMode.BOX) {
             return;
         }
@@ -2494,7 +2483,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         graphics.fill(x1 - 1, y0, x1, y1, BOX_BORDER);
     }
 
-    private void renderDock(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+    private void renderDock(GuiGraphics graphics, int mouseX, int mouseY) {
         if (!dockVisible()) {
             return;
         }
@@ -2503,12 +2492,12 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         graphics.fill(x0, 0, x0 + 1, height, PANEL_BORDER);
         BlueprintNode node = singleSelectedNode();
         if (node != null) {
-            graphics.pose().pushMatrix();
-            graphics.pose().translate(0.0F, (float) -dockScroll);
+            graphics.pose().pushPose();
+            graphics.pose().translate(0.0D, -dockScroll, 0.0D);
             renderInspectorContent(graphics, node, mouseX, mouseY + dockScroll);
-            graphics.pose().popMatrix();
+            graphics.pose().popPose();
         } else if (previewOpen) {
-            graphics.text(font, RFMTranslations.PROGRAM_NAME.component(), x0 + 8, 24, TEXT_MUTED);
+            graphics.drawString(font, RFMTranslations.PROGRAM_NAME.component(), x0 + 8, 24, TEXT_MUTED);
         }
         if (previewOpen) {
             renderPreviewSection(graphics);
@@ -2516,7 +2505,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         renderDockScrollbar(graphics);
     }
 
-    private void renderDockScrollbar(GuiGraphicsExtractor graphics) {
+    private void renderDockScrollbar(GuiGraphics graphics) {
         int maxScroll = maxDockScroll();
         if (maxScroll <= 0) {
             return;
@@ -2530,31 +2519,31 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         graphics.fill(width - 4, barY, width - 2, barY + barHeight, PANEL_BORDER);
     }
 
-    private void renderInspectorContent(GuiGraphicsExtractor graphics, BlueprintNode node, int mouseX, int mouseY) {
+    private void renderInspectorContent(GuiGraphics graphics, BlueprintNode node, int mouseX, int mouseY) {
         int x0 = dockX();
         graphics.fill(x0 + 8, 8, x0 + 16, 16, headerColor(node.type().category()));
-        graphics.text(font, Component.translatable(node.type().translationKey()), x0 + 21, 8, TEXT_PRIMARY);
+        graphics.drawString(font, Component.translatable(node.type().translationKey()), x0 + 21, 8, TEXT_PRIMARY);
         switch (node.settings()) {
             case NodeSettings.Timer timer -> {
-                graphics.text(font, RFMTranslations.INTERVAL.component(), x0 + 8, 26, TEXT_MUTED);
-                graphics.text(font, RFMTranslations.OFFSET_HINT.component(), x0 + 8, 80, TEXT_MUTED);
+                graphics.drawString(font, RFMTranslations.INTERVAL.component(), x0 + 8, 26, TEXT_MUTED);
+                graphics.drawString(font, RFMTranslations.OFFSET_HINT.component(), x0 + 8, 80, TEXT_MUTED);
                 if (!timer.seconds() && timer.amount() < 20) {
-                    graphics.text(font, RFMTranslations.MIN_INTERVAL_WARNING.component(), x0 + 8, 112, TEXT_STATUS_WARN);
-                    graphics.text(font, RFMTranslations.MIN_INTERVAL_WARNING2.component(), x0 + 8, 122, TEXT_STATUS_WARN);
+                    graphics.drawString(font, RFMTranslations.MIN_INTERVAL_WARNING.component(), x0 + 8, 112, TEXT_STATUS_WARN);
+                    graphics.drawString(font, RFMTranslations.MIN_INTERVAL_WARNING2.component(), x0 + 8, 122, TEXT_STATUS_WARN);
                 }
             }
             case NodeSettings.RedstonePulse ignored ->
-                    graphics.text(font, RFMTranslations.NO_OPTIONS.component(), x0 + 8, 26, TEXT_MUTED);
+                    graphics.drawString(font, RFMTranslations.NO_OPTIONS.component(), x0 + 8, 26, TEXT_MUTED);
             case NodeSettings.Io io -> renderIoContent(graphics, node, io, mouseX, mouseY);
             case NodeSettings.Forget ignored -> {
-                graphics.text(font, RFMTranslations.FORGET_NOTE.component(), x0 + 8, 26, TEXT_MUTED);
+                graphics.drawString(font, RFMTranslations.FORGET_NOTE.component(), x0 + 8, 26, TEXT_MUTED);
                 renderLabelRows(graphics, node, mouseX, mouseY, 38);
             }
             case NodeSettings.If ifSettings -> {
                 if (ifSettings.useText()) {
-                    graphics.text(font, RFMTranslations.CONDITION_SFML.component(), x0 + 8, 26, TEXT_MUTED);
+                    graphics.drawString(font, RFMTranslations.CONDITION_SFML.component(), x0 + 8, 26, TEXT_MUTED);
                 } else {
-                    graphics.text(font, RFMTranslations.CONDITIONS.component(), x0 + 8, 26, TEXT_MUTED);
+                    graphics.drawString(font, RFMTranslations.CONDITIONS.component(), x0 + 8, 26, TEXT_MUTED);
                     for (int i = 1; i < ifSettings.rows().size(); i++) {
                         int separatorY = 46 + i * CONDITION_ROW_HEIGHT - 2;
                         graphics.fill(x0 + 8, separatorY, x0 + DOCK_WIDTH - 8, separatorY + 1, PANEL_BORDER);
@@ -2562,11 +2551,11 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 }
             }
             case NodeSettings.Comment ignored ->
-                    graphics.text(font, RFMTranslations.COMMENT_TEXT.component(), x0 + 8, 26, TEXT_MUTED);
+                    graphics.drawString(font, RFMTranslations.COMMENT_TEXT.component(), x0 + 8, 26, TEXT_MUTED);
         }
     }
 
-    private void renderIoContent(GuiGraphicsExtractor graphics, BlueprintNode node, NodeSettings.Io io, int mouseX, int mouseY) {
+    private void renderIoContent(GuiGraphics graphics, BlueprintNode node, NodeSettings.Io io, int mouseX, int mouseY) {
         int x0 = dockX();
         int x = x0 + 8;
         IoSection section = IoSection.of(io);
@@ -2579,9 +2568,9 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             Component header = section.groups().size() > 1
                     ? RFMTranslations.FILTER_GROUP.component(i + 1)
                     : RFMTranslations.ITEMS_HEADER.component();
-            graphics.text(font, header, x, group.headerY(), TEXT_MUTED);
-            graphics.text(font, RFMTranslations.QTY.component(), x, group.qtyY() + 4, TEXT_MUTED);
-            graphics.text(font, RFMTranslations.KEEP.component(), x + 70, group.qtyY() + 4, TEXT_MUTED);
+            graphics.drawString(font, header, x, group.headerY(), TEXT_MUTED);
+            graphics.drawString(font, RFMTranslations.QTY.component(), x, group.qtyY() + 4, TEXT_MUTED);
+            graphics.drawString(font, RFMTranslations.KEEP.component(), x + 70, group.qtyY() + 4, TEXT_MUTED);
             List<String> resources = entry.resources();
             for (int row = 0; row < group.shownItemRows(); row++) {
                 int rowY = group.itemRowsY() + row * LABEL_ROW_HEIGHT;
@@ -2590,15 +2579,15 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 if (hovered) {
                     graphics.fill(x0 + 6, rowY - 1, x0 + DOCK_WIDTH - 6, rowY + LABEL_ROW_HEIGHT - 1, PALETTE_ROW_HOVER);
                 }
-                graphics.text(font, Component.literal("x"), x0 + DOCK_WIDTH - 14, rowY + 2, TEXT_STATUS_ERROR);
+                graphics.drawString(font, Component.literal("x"), x0 + DOCK_WIDTH - 14, rowY + 2, TEXT_STATUS_ERROR);
                 String shown = truncateToWidth(resources.get(row), DOCK_WIDTH - 40);
-                graphics.text(font, Component.literal(shown), x, rowY + 2, TEXT_PRIMARY);
+                graphics.drawString(font, Component.literal(shown), x, rowY + 2, TEXT_PRIMARY);
             }
             if (group.moreItemsLine()) {
                 int moreY = group.itemRowsY() + group.shownItemRows() * LABEL_ROW_HEIGHT;
-                graphics.text(font, RFMTranslations.MORE_ITEMS.component(resources.size() - group.shownItemRows()), x, moreY, TEXT_MUTED);
+                graphics.drawString(font, RFMTranslations.MORE_ITEMS.component(resources.size() - group.shownItemRows()), x, moreY, TEXT_MUTED);
             }
-            graphics.text(font, RFMTranslations.TAGS_HEADER.component(), x, group.tagModeY() - 11, TEXT_MUTED);
+            graphics.drawString(font, RFMTranslations.TAGS_HEADER.component(), x, group.tagModeY() - 11, TEXT_MUTED);
             for (int row = 0; row < group.shownTagRows(); row++) {
                 int rowY = group.tagRowsY() + row * LABEL_ROW_HEIGHT;
                 boolean hovered = mouseX >= x && mouseX <= x0 + DOCK_WIDTH - 8
@@ -2606,12 +2595,12 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 if (hovered) {
                     graphics.fill(x0 + 6, rowY - 1, x0 + DOCK_WIDTH - 6, rowY + LABEL_ROW_HEIGHT - 1, PALETTE_ROW_HOVER);
                 }
-                graphics.text(font, Component.literal("x"), x0 + DOCK_WIDTH - 14, rowY + 2, TEXT_STATUS_ERROR);
+                graphics.drawString(font, Component.literal("x"), x0 + DOCK_WIDTH - 14, rowY + 2, TEXT_STATUS_ERROR);
                 String shown = truncateToWidth("#" + entry.tags().get(row), DOCK_WIDTH - 40);
-                graphics.text(font, Component.literal(shown), x, rowY + 2, TEXT_PRIMARY);
+                graphics.drawString(font, Component.literal(shown), x, rowY + 2, TEXT_PRIMARY);
             }
         }
-        graphics.text(font, RFMTranslations.EXCEPT_HEADER.component(), x, section.exceptHeaderY(), TEXT_MUTED);
+        graphics.drawString(font, RFMTranslations.EXCEPT_HEADER.component(), x, section.exceptHeaderY(), TEXT_MUTED);
         for (int row = 0; row < section.shownExceptRows(); row++) {
             int rowY = section.exceptRowsY() + row * LABEL_ROW_HEIGHT;
             boolean hovered = mouseX >= x && mouseX <= x0 + DOCK_WIDTH - 8
@@ -2619,11 +2608,11 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             if (hovered) {
                 graphics.fill(x0 + 6, rowY - 1, x0 + DOCK_WIDTH - 6, rowY + LABEL_ROW_HEIGHT - 1, PALETTE_ROW_HOVER);
             }
-            graphics.text(font, Component.literal("x"), x0 + DOCK_WIDTH - 14, rowY + 2, TEXT_STATUS_ERROR);
+            graphics.drawString(font, Component.literal("x"), x0 + DOCK_WIDTH - 14, rowY + 2, TEXT_STATUS_ERROR);
             String shown = truncateToWidth(io.except().get(row), DOCK_WIDTH - 40);
-            graphics.text(font, Component.literal(shown), x, rowY + 2, TEXT_PRIMARY);
+            graphics.drawString(font, Component.literal(shown), x, rowY + 2, TEXT_PRIMARY);
         }
-        graphics.text(font, RFMTranslations.SIDES.component(), x, section.sidesHeaderY(), TEXT_MUTED);
+        graphics.drawString(font, RFMTranslations.SIDES.component(), x, section.sidesHeaderY(), TEXT_MUTED);
         IoSide[] sides = IoSide.values();
         for (int i = 0; i <= sides.length; i++) {
             int[] rect = sideChipRect(i, section.chipsY());
@@ -2635,21 +2624,21 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             graphics.fill(rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3], background);
             Component text = eachChip ? RFMTranslations.SIDE_EACH.component() : Component.translatable(sides[i].translationKey());
             int textColor = dimmed ? TEXT_MUTED : selected ? 0xFF10151A : TEXT_PRIMARY;
-            graphics.text(font, text, rect[0] + (rect[2] - font.width(text)) / 2, rect[1] + 2, textColor);
+            graphics.drawString(font, text, rect[0] + (rect[2] - font.width(text)) / 2, rect[1] + 2, textColor);
         }
-        graphics.text(font, RFMTranslations.SLOTS.component(), x, section.slotsY() + 4, TEXT_MUTED);
+        graphics.drawString(font, RFMTranslations.SLOTS.component(), x, section.slotsY() + 4, TEXT_MUTED);
         renderLabelRows(graphics, node, mouseX, mouseY, section.labelsHeaderY());
     }
 
-    private void renderLabelRows(GuiGraphicsExtractor graphics, BlueprintNode node, int mouseX, int mouseY, int headerY) {
+    private void renderLabelRows(GuiGraphics graphics, BlueprintNode node, int mouseX, int mouseY, int headerY) {
         int x0 = dockX();
-        graphics.text(font, RFMTranslations.LABELS_HEADER.component(), x0 + 8, headerY, TEXT_MUTED);
+        graphics.drawString(font, RFMTranslations.LABELS_HEADER.component(), x0 + 8, headerY, TEXT_MUTED);
         List<String> known = knownLabels(node);
         List<String> active = nodeLabels(node.settings());
         Map<String, LabelInfo> info = worldLabelInfo();
         int startY = headerY + 12;
         if (known.isEmpty()) {
-            graphics.text(font, RFMTranslations.NO_LABELS.component(), x0 + 8, startY + 2, TEXT_MUTED);
+            graphics.drawString(font, RFMTranslations.NO_LABELS.component(), x0 + 8, startY + 2, TEXT_MUTED);
             return;
         }
         int visibleRows = Math.min(known.size(), MAX_VISIBLE_LABEL_ROWS);
@@ -2677,21 +2666,21 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                     : labelInfo.gunOnly() ? TEXT_STATUS_WARN
                     : TEXT_MUTED;
             int countX = x0 + DOCK_WIDTH - 10 - font.width(count);
-            graphics.text(font, Component.literal(count), countX, rowY + 2, countColor);
+            graphics.drawString(font, Component.literal(count), countX, rowY + 2, countColor);
             String shown = truncateToWidth(label, countX - (x0 + 23) - 4);
-            graphics.text(font, Component.literal(shown), x0 + 23, rowY + 2, checked ? TEXT_PRIMARY : TEXT_MUTED);
+            graphics.drawString(font, Component.literal(shown), x0 + 23, rowY + 2, checked ? TEXT_PRIMARY : TEXT_MUTED);
         }
         if (known.size() > MAX_VISIBLE_LABEL_ROWS) {
             Component hint = RFMTranslations.LABEL_SCROLL.component(labelScroll + visibleRows, known.size());
-            graphics.text(font, hint, x0 + DOCK_WIDTH - 12 - font.width(hint), headerY, TEXT_MUTED);
+            graphics.drawString(font, hint, x0 + DOCK_WIDTH - 12 - font.width(hint), headerY, TEXT_MUTED);
         }
         int noteY = startY + Math.max(visibleRows, 1) * LABEL_ROW_HEIGHT + 26;
         boolean anyGunOnly = active.stream().anyMatch(label -> info.getOrDefault(label, new LabelInfo(0, 0)).gunOnly());
         boolean anyUnassigned = active.stream().anyMatch(label -> info.getOrDefault(label, new LabelInfo(0, 0)).totalBlocks() == 0);
         if (anyUnassigned) {
-            graphics.text(font, RFMTranslations.UNASSIGNED_NOTE.component(), x0 + 8, noteY, TEXT_STATUS_ERROR);
+            graphics.drawString(font, RFMTranslations.UNASSIGNED_NOTE.component(), x0 + 8, noteY, TEXT_STATUS_ERROR);
         } else if (anyGunOnly) {
-            graphics.text(font, RFMTranslations.GUN_ONLY_NOTE.component(), x0 + 8, noteY, TEXT_STATUS_WARN);
+            graphics.drawString(font, RFMTranslations.GUN_ONLY_NOTE.component(), x0 + 8, noteY, TEXT_STATUS_WARN);
         }
     }
 
@@ -2710,48 +2699,48 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         return sb + "...";
     }
 
-    private void renderPreviewSection(GuiGraphicsExtractor graphics) {
+    private void renderPreviewSection(GuiGraphics graphics) {
         int x0 = dockX();
         int y = Math.max(inspectorBottom - dockScroll + 10, 10);
         graphics.fill(x0 + 8, y - 4, x0 + DOCK_WIDTH - 8, y - 3, PANEL_BORDER);
-        graphics.text(font, RFMTranslations.SFML_PREVIEW.component(), x0 + 8, y, TEXT_PRIMARY);
+        graphics.drawString(font, RFMTranslations.SFML_PREVIEW.component(), x0 + 8, y, TEXT_PRIMARY);
         y += 14;
         int lineHeight = font.lineHeight + 2;
         if (previewLines.isEmpty()) {
-            graphics.text(font, RFMTranslations.EMPTY_PROGRAM.component(), x0 + 8, y, TEXT_MUTED);
+            graphics.drawString(font, RFMTranslations.EMPTY_PROGRAM.component(), x0 + 8, y, TEXT_MUTED);
             return;
         }
         for (int i = previewScroll; i < previewLines.size(); i++) {
             if (y > height - 14) {
                 break;
             }
-            graphics.text(font, Component.literal(previewLines.get(i)), x0 + 8, y, TEXT_MUTED);
+            graphics.drawString(font, Component.literal(previewLines.get(i)), x0 + 8, y, TEXT_MUTED);
             y += lineHeight;
         }
     }
 
-    private void renderHud(GuiGraphicsExtractor graphics) {
+    private void renderHud(GuiGraphics graphics) {
         Component title = RFMTranslations.TITLE.component();
-        graphics.text(font, title, 8, 6, TEXT_PRIMARY);
+        graphics.drawString(font, title, 8, 6, TEXT_PRIMARY);
         if (unsavedChanges) {
-            graphics.text(font, RFMTranslations.UNSAVED.component(), 14 + font.width(title), 6, TEXT_STATUS_WARN);
+            graphics.drawString(font, RFMTranslations.UNSAVED.component(), 14 + font.width(title), 6, TEXT_STATUS_WARN);
         }
-        graphics.text(font, RFMTranslations.STATS.component(graph.nodes().size(), graph.edges().size(), Math.round(zoom * 100)), 8, 18, TEXT_MUTED);
+        graphics.drawString(font, RFMTranslations.STATS.component(graph.nodes().size(), graph.edges().size(), Math.round(zoom * 100)), 8, 18, TEXT_MUTED);
         int hudRight = (dockVisible() ? dockX() : width) - 12;
         Component labelsLine = RFMTranslations.LABELS_AVAILABLE.component(worldLabels().size());
-        graphics.text(font, labelsLine, 8, height - 52, TEXT_MUTED);
+        graphics.drawString(font, labelsLine, 8, height - 52, TEXT_MUTED);
         Component undoHint = RFMTranslations.UNDO_HINT.component();
         if (8 + font.width(labelsLine) + 12 + font.width(undoHint) <= hudRight) {
-            graphics.text(font, undoHint, hudRight - font.width(undoHint), height - 52, TEXT_MUTED);
+            graphics.drawString(font, undoHint, hudRight - font.width(undoHint), height - 52, TEXT_MUTED);
         }
         Component hint = RFMTranslations.HINT.component();
         if (font.width(hint) + 8 <= hudRight) {
-            graphics.text(font, hint, 8, height - 40, TEXT_MUTED);
+            graphics.drawString(font, hint, 8, height - 40, TEXT_MUTED);
         } else {
-            graphics.text(font, Component.literal(truncateToWidth(hint.getString(), hudRight - 8)), 8, height - 40, TEXT_MUTED);
+            graphics.drawString(font, Component.literal(truncateToWidth(hint.getString(), hudRight - 8)), 8, height - 40, TEXT_MUTED);
         }
         if (legacyProgramWithoutGraph && graph.isEmpty()) {
-            graphics.text(
+            graphics.drawString(
                     font,
                     importable != null
                             ? RFMTranslations.IMPORT_AVAILABLE.component()
@@ -2769,10 +2758,10 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             Component header = programErrors.size() == 1
                     ? RFMTranslations.ERRORS_ONE.component()
                     : RFMTranslations.ERRORS_MANY.component(programErrors.size());
-            graphics.text(font, header, 8, y, TEXT_STATUS_ERROR);
+            graphics.drawString(font, header, 8, y, TEXT_STATUS_ERROR);
             if (!errorNodeOrder.isEmpty()) {
                 Component clickHint = RFMTranslations.ERRORS_CLICK_HINT.component();
-                graphics.text(font, clickHint, 12 + font.width(header), y, TEXT_MUTED);
+                graphics.drawString(font, clickHint, 12 + font.width(header), y, TEXT_MUTED);
             }
             for (int i = 0; i < shown; i++) {
                 int rowY = y + 12 + i * 12;
@@ -2785,25 +2774,25 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                     graphics.fill(6, rowY - 1, maxWidth, rowY + 11, PALETTE_ROW_HOVER);
                 }
                 String line = truncateToWidth(error.replace("\n", " "), maxWidth);
-                graphics.text(font, Component.literal(line), 8, rowY, TEXT_STATUS_ERROR);
+                graphics.drawString(font, Component.literal(line), 8, rowY, TEXT_STATUS_ERROR);
                 if (clickable) {
                     errorRowHitboxes.add(new int[]{rowY, maxWidth, errorNodeOrder.indexOf(owner)});
                 }
             }
         }
         if (System.currentTimeMillis() < statusExpiresAt) {
-            graphics.centeredText(font, statusMessage, width / 2, 30, TEXT_STATUS_ERROR);
+            graphics.drawCenteredString(font, statusMessage, width / 2, 30, TEXT_STATUS_ERROR);
         }
     }
 
-    private void renderPalette(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+    private void renderPalette(GuiGraphics graphics, int mouseX, int mouseY) {
         if (!paletteOpen) {
             return;
         }
         int h = paletteHeight();
         graphics.fill(paletteX - 1, paletteY - 1, paletteX + PALETTE_WIDTH + 1, paletteY + h + 1, PANEL_BORDER);
         graphics.fill(paletteX, paletteY, paletteX + PALETTE_WIDTH, paletteY + h, PALETTE_BACKGROUND);
-        graphics.text(font, RFMTranslations.ADD_NODE.component(), paletteX + 6, paletteY + 4, TEXT_PRIMARY);
+        graphics.drawString(font, RFMTranslations.ADD_NODE.component(), paletteX + 6, paletteY + 4, TEXT_PRIMARY);
         List<NodeType> types = paletteTypes();
         for (int i = 0; i < types.size(); i++) {
             int rowY = paletteY + PALETTE_HEADER_HEIGHT + i * PALETTE_ROW_HEIGHT;
@@ -2813,7 +2802,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 graphics.fill(paletteX, rowY, paletteX + PALETTE_WIDTH, rowY + PALETTE_ROW_HEIGHT, PALETTE_ROW_HOVER);
             }
             graphics.fill(paletteX + 6, rowY + 3, paletteX + 12, rowY + 9, headerColor(types.get(i).category()));
-            graphics.text(font, Component.translatable(types.get(i).translationKey()), paletteX + 17, rowY + 2, TEXT_PRIMARY);
+            graphics.drawString(font, Component.translatable(types.get(i).translationKey()), paletteX + 17, rowY + 2, TEXT_PRIMARY);
         }
     }
 }
