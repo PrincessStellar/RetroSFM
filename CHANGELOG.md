@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+
+### Changed
+
+* The editor switcher in the blueprint editor is now provided by RetroFactoryManager itself, so you can swap between Blueprint, V1, V2, and Draw editors on current SFM releases
+* Added English display names for SFM's built-in editors in the switcher
+
 ## 1.0.0
 
 Initial release.

@@ -2,7 +2,6 @@ package com.breakinblocks.retrofactorymanager.client.gui;
 
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
-import ca.teamdman.sfm.client.screen.widget.SFMPreferredEditorDropdown;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
@@ -271,7 +270,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                 .pos(126, y)
                 .size(96, 20)
                 .build());
-        addRenderableWidget(SFMPreferredEditorDropdown.createForEditor(
+        addRenderableWidget(RFMEditorSwitcher.createForEditor(
                 230,
                 y,
                 110,
