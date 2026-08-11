@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.2
+
+### Fixed
+
+* The item suggestion dropdown, the add-node menu and the inspector panel no longer let the text behind them show through
+* Placeholder hints in text fields now disappear as soon as you start typing, instead of overlapping what you type, and come back when you clear the field
+
 ## 1.0.1
 
 ### Changed

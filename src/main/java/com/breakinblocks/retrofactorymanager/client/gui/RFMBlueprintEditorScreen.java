@@ -58,6 +58,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -65,7 +66,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
     private static final int BACKGROUND = 0xFF15191E;
     private static final int GRID_MINOR = 0xFF1E242B;
     private static final int GRID_MAJOR = 0xFF2A323C;
-    private static final int NODE_BODY = 0xF01C232B;
+    private static final int NODE_BODY = 0xFF1C232B;
     private static final int NODE_BORDER = 0xFF39434F;
     private static final int NODE_BORDER_SELECTED = 0xFF60A5FA;
     private static final int TEXT_PRIMARY = 0xFFE6EDF3;
@@ -80,9 +81,9 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
     private static final int WIRE_HOVER = 0xFFFF6B6B;
     private static final int BOX_FILL = 0x3060A5FA;
     private static final int BOX_BORDER = 0xFF60A5FA;
-    private static final int PANEL_BACKGROUND = 0xF0181E26;
+    private static final int PANEL_BACKGROUND = 0xFF181E26;
     private static final int PANEL_BORDER = 0xFF4B5563;
-    private static final int PALETTE_BACKGROUND = 0xF0202833;
+    private static final int PALETTE_BACKGROUND = 0xFF202833;
     private static final int PALETTE_ROW_HOVER = 0xFF2E3947;
     private static final int CHECKBOX_BORDER = 0xFF6B7684;
     private static final double MIN_ZOOM = 0.25D;
@@ -1014,8 +1015,8 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         EditBox exceptField = new EditBox(font, x, section.exceptAddY(), DOCK_WIDTH - 72, 16,
                 RFMTranslations.EXCEPT_HEADER.component());
         exceptField.setMaxLength(256);
-        exceptField.setSuggestion(RFMTranslations.EXCEPT_PLACEHOLDER.string());
-        exceptField.setResponder(value -> updateSuggestions(exceptField, value, -1, EXCEPT_TARGET));
+        setPlaceholder(exceptField, RFMTranslations.EXCEPT_PLACEHOLDER.string(),
+                value -> updateSuggestions(exceptField, value, -1, EXCEPT_TARGET));
         addInspectorWidget(exceptField);
         exceptAddField = exceptField;
         addInspectorWidget(Button.builder(RFMTranslations.ADD.component(), button -> addExceptEntry())
@@ -1042,9 +1043,8 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         EditBox slotsField = new EditBox(font, x + 34, section.slotsY(), 116, 16, RFMTranslations.SLOTS.component());
         slotsField.setMaxLength(64);
         slotsField.setFilter(value -> value.matches("[0-9,\\- ]*"));
-        slotsField.setSuggestion(io.slots().isBlank() ? "0,2-8" : "");
         slotsField.setValue(io.slots());
-        slotsField.setResponder(value -> editing("slots:" + node.id(),
+        setPlaceholder(slotsField, "0,2-8", value -> editing("slots:" + node.id(),
                 () -> mutateIo(current -> current.withSlots(value.trim()))));
         addInspectorWidget(slotsField);
 
@@ -1088,11 +1088,9 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         addField.setMaxLength(256);
         String pending = index == customResourceGroup ? customResourceText : "";
         addField.setValue(pending);
-        addField.setSuggestion(pending.isEmpty() ? "minecraft:iron_ingot" : "");
-        addField.setResponder(value -> {
+        setPlaceholder(addField, "minecraft:iron_ingot", value -> {
             customResourceText = value;
             customResourceGroup = index;
-            addField.setSuggestion(value.isEmpty() ? "minecraft:iron_ingot" : "");
             updateSuggestions(addField, value, -1, index);
         });
         addInspectorWidget(addField);
@@ -1121,7 +1119,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         EditBox tagField = new EditBox(font, x, group.tagAddY(), DOCK_WIDTH - 72, 16,
                 RFMTranslations.TAGS_HEADER.component());
         tagField.setMaxLength(256);
-        tagField.setSuggestion(RFMTranslations.TAG_PLACEHOLDER.string());
+        setPlaceholder(tagField, RFMTranslations.TAG_PLACEHOLDER.string(), null);
         addInspectorWidget(tagField);
         tagAddFields.put(index, tagField);
         addInspectorWidget(Button.builder(RFMTranslations.ADD.component(), button -> addTagEntry(index))
@@ -1297,11 +1295,11 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         if (!row.redstone()) {
             EditBox labelField = new EditBox(font, x, rowB, 100, 16, RFMTranslations.ROW_LABEL.component());
             labelField.setMaxLength(256);
-            labelField.setSuggestion(row.label().isEmpty() ? RFMTranslations.LABEL_PLACEHOLDER.string() : "");
             labelField.setValue(row.label());
-            labelField.setResponder(value -> editing("cond_label:" + index,
-                    () -> updateConditionRow(index, current -> new ConditionRow(current.redstone(),
-                            current.negate(), current.setOp(), value, current.comparison(), current.amount(), current.resource()))));
+            setPlaceholder(labelField, RFMTranslations.LABEL_PLACEHOLDER.string(),
+                    value -> editing("cond_label:" + index,
+                            () -> updateConditionRow(index, current -> new ConditionRow(current.redstone(),
+                                    current.negate(), current.setOp(), value, current.comparison(), current.amount(), current.resource()))));
             addInspectorWidget(labelField);
         }
         addInspectorWidget(Button.builder(Component.literal(row.comparison()), button -> {
@@ -1327,9 +1325,8 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             int rowC = rowY + 38;
             EditBox resourceField = new EditBox(font, x, rowC, DOCK_WIDTH - 16, 16, RFMTranslations.RESOURCE.component());
             resourceField.setMaxLength(256);
-            resourceField.setSuggestion(row.resource().isBlank() ? RFMTranslations.ITEM_FILTER_OPTIONAL.string() : "");
             resourceField.setValue(row.resource());
-            resourceField.setResponder(value -> {
+            setPlaceholder(resourceField, RFMTranslations.ITEM_FILTER_OPTIONAL.string(), value -> {
                 editing("cond_res:" + index, () -> updateConditionRow(index, current -> new ConditionRow(current.redstone(),
                         current.negate(), current.setOp(), current.label(), current.comparison(), current.amount(), value)));
                 updateSuggestions(resourceField, value, index);
@@ -1512,6 +1509,16 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                     current.setOp(), current.label(), current.comparison(), current.amount(), id));
             requestInspectorRefresh();
         }
+    }
+
+    private static void setPlaceholder(EditBox field, String placeholder, @Nullable Consumer<String> responder) {
+        field.setSuggestion(field.getValue().isEmpty() ? placeholder : "");
+        field.setResponder(value -> {
+            field.setSuggestion(value.isEmpty() ? placeholder : "");
+            if (responder != null) {
+                responder.accept(value);
+            }
+        });
     }
 
     private void renderSuggestions(GuiGraphics graphics, int mouseX, int mouseY) {
