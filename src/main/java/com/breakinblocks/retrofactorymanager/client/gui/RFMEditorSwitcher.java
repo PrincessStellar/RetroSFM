@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 
 public final class RFMEditorSwitcher {
     private static final int PANEL_PADDING = 3;
-    private static final int PANEL_BACKGROUND = 0xF0141414;
+    private static final int PANEL_BACKGROUND = 0xFF141414;
     private static final int PANEL_BORDER = 0xFF8B8B8B;
     private static final int ROW_HOVER_BACKGROUND = 0x40FFFFFF;
     private static final int TEXT_COLOR = 0xFFE0E0E0;
