@@ -86,6 +86,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
     private static final int PALETTE_BACKGROUND = 0xFF202833;
     private static final int PALETTE_ROW_HOVER = 0xFF2E3947;
     private static final int CHECKBOX_BORDER = 0xFF6B7684;
+    private static final double OVERLAY_Z = 200.0D;
     private static final double MIN_ZOOM = 0.25D;
     private static final double MAX_ZOOM = 3.0D;
     private static final double ZOOM_STEP = 1.15D;
@@ -174,7 +175,6 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
     private double paletteCanvasY;
 
     private boolean previewOpen;
-    private int previewScroll;
 
     private final List<AbstractWidget> inspectorWidgets = new ArrayList<>();
     private final Map<AbstractWidget, Integer> inspectorWidgetBaseY = new HashMap<>();
@@ -894,6 +894,8 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             }));
             addInspectorWidget(nameField);
             inspectorBottom = 60;
+            dockScroll = Mth.clamp(dockScroll, 0, maxDockScroll());
+            applyDockScroll();
             return;
         }
         switch (node.settings()) {
@@ -1525,6 +1527,8 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         if (suggestions.isEmpty()) {
             return;
         }
+        graphics.pose().pushPose();
+        graphics.pose().translate(0.0D, 0.0D, OVERLAY_Z);
         int x0 = suggestionX;
         int x1 = x0 + DOCK_WIDTH - 16;
         int y1 = suggestionY + suggestions.size() * SUGGESTION_ROW_HEIGHT + 2;
@@ -1547,6 +1551,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             graphics.drawString(font, Component.literal(truncateToWidth(entry.name(), textWidth)), x0 + 22, rowY + 1, TEXT_PRIMARY);
             graphics.drawString(font, Component.literal(truncateToWidth(entry.id(), textWidth)), x0 + 22, rowY + 10, TEXT_MUTED);
         }
+        graphics.pose().popPose();
     }
 
     private void addCustomResource(int groupIndex) {
@@ -1587,7 +1592,9 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         offsetField.setResponder(value -> editing("timer_offset:" + node.id(), () -> updateTimer(t ->
                 new NodeSettings.Timer(t.amount(), t.seconds(), t.global(), parseIntOr(value, t.offset())))));
         addInspectorWidget(offsetField);
-        inspectorBottom = 130;
+        int warnings = (timer.offset() >= timer.amount() ? 1 : 0)
+                       + (!timer.seconds() && timer.amount() < 20 ? 1 : 0);
+        inspectorBottom = 108 + warnings * 22;
     }
 
     private void updateTimer(java.util.function.UnaryOperator<NodeSettings.Timer> update) {
@@ -1641,8 +1648,20 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         addRenderableWidget(widget);
     }
 
+    private int previewHeight() {
+        if (!previewOpen || font == null) {
+            return 0;
+        }
+        int lines = previewLines.isEmpty() ? 1 : previewLines.size();
+        return 24 + lines * (font.lineHeight + 2);
+    }
+
+    private int dockContentBottom() {
+        return inspectorBottom + previewHeight();
+    }
+
     private int maxDockScroll() {
-        return Math.max(0, inspectorBottom + 6 - (height - 12));
+        return Math.max(0, dockContentBottom() + 6 - (height - 12));
     }
 
     private void applyDockScroll() {
@@ -2030,13 +2049,11 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
                     return true;
                 }
             }
-            if (node != null && maxDockScroll() > 0) {
+            if (maxDockScroll() > 0) {
                 dockScroll = Mth.clamp(dockScroll - (int) Math.signum(deltaY) * 16, 0, maxDockScroll());
                 clearSuggestions();
                 applyDockScroll();
-                return true;
             }
-            previewScroll = Mth.clamp(previewScroll - (int) Math.signum(deltaY) * 3, 0, Math.max(0, previewLines.size() - 5));
             return true;
         }
         double focusX = screenToCanvasX(mouseX);
@@ -2519,7 +2536,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         }
         int trackTop = 4;
         int trackHeight = height - 8;
-        int contentHeight = inspectorBottom + 6;
+        int contentHeight = dockContentBottom() + 6;
         int barHeight = Math.max(20, trackHeight * trackHeight / contentHeight);
         int barY = trackTop + (int) ((trackHeight - barHeight) * (double) dockScroll / maxScroll);
         graphics.fill(width - 4, trackTop, width - 2, trackTop + trackHeight, PALETTE_BACKGROUND);
@@ -2533,10 +2550,19 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         switch (node.settings()) {
             case NodeSettings.Timer timer -> {
                 graphics.drawString(font, RFMTranslations.INTERVAL.component(), x0 + 8, 26, TEXT_MUTED);
-                graphics.drawString(font, RFMTranslations.OFFSET_HINT.component(), x0 + 8, 80, TEXT_MUTED);
+                RFMTranslations.Entry offsetHint = timer.seconds()
+                        ? RFMTranslations.OFFSET_HINT_SECONDS
+                        : RFMTranslations.OFFSET_HINT;
+                graphics.drawString(font, offsetHint.component(), x0 + 8, 80, TEXT_MUTED);
+                int warnY = 112;
+                if (timer.offset() >= timer.amount()) {
+                    graphics.drawString(font, RFMTranslations.OFFSET_WARNING.component(), x0 + 8, warnY, TEXT_STATUS_WARN);
+                    graphics.drawString(font, RFMTranslations.OFFSET_WARNING2.component(), x0 + 8, warnY + 10, TEXT_STATUS_WARN);
+                    warnY += 22;
+                }
                 if (!timer.seconds() && timer.amount() < 20) {
-                    graphics.drawString(font, RFMTranslations.MIN_INTERVAL_WARNING.component(), x0 + 8, 112, TEXT_STATUS_WARN);
-                    graphics.drawString(font, RFMTranslations.MIN_INTERVAL_WARNING2.component(), x0 + 8, 122, TEXT_STATUS_WARN);
+                    graphics.drawString(font, RFMTranslations.MIN_INTERVAL_WARNING.component(), x0 + 8, warnY, TEXT_STATUS_WARN);
+                    graphics.drawString(font, RFMTranslations.MIN_INTERVAL_WARNING2.component(), x0 + 8, warnY + 10, TEXT_STATUS_WARN);
                 }
             }
             case NodeSettings.RedstonePulse ignored ->
@@ -2708,7 +2734,7 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
 
     private void renderPreviewSection(GuiGraphics graphics) {
         int x0 = dockX();
-        int y = Math.max(inspectorBottom - dockScroll + 10, 10);
+        int y = inspectorBottom - dockScroll + 10;
         graphics.fill(x0 + 8, y - 4, x0 + DOCK_WIDTH - 8, y - 3, PANEL_BORDER);
         graphics.drawString(font, RFMTranslations.SFML_PREVIEW.component(), x0 + 8, y, TEXT_PRIMARY);
         y += 14;
@@ -2717,11 +2743,13 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             graphics.drawString(font, RFMTranslations.EMPTY_PROGRAM.component(), x0 + 8, y, TEXT_MUTED);
             return;
         }
-        for (int i = previewScroll; i < previewLines.size(); i++) {
-            if (y > height - 14) {
+        for (String line : previewLines) {
+            if (y > height - 12) {
                 break;
             }
-            graphics.drawString(font, Component.literal(previewLines.get(i)), x0 + 8, y, TEXT_MUTED);
+            if (y > -lineHeight) {
+                graphics.drawString(font, Component.literal(line), x0 + 8, y, TEXT_MUTED);
+            }
             y += lineHeight;
         }
     }
@@ -2796,6 +2824,8 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
         if (!paletteOpen) {
             return;
         }
+        graphics.pose().pushPose();
+        graphics.pose().translate(0.0D, 0.0D, OVERLAY_Z + 100.0D);
         int h = paletteHeight();
         graphics.fill(paletteX - 1, paletteY - 1, paletteX + PALETTE_WIDTH + 1, paletteY + h + 1, PANEL_BORDER);
         graphics.fill(paletteX, paletteY, paletteX + PALETTE_WIDTH, paletteY + h, PALETTE_BACKGROUND);
@@ -2811,5 +2841,6 @@ public class RFMBlueprintEditorScreen extends Screen implements ISFMTextEditScre
             graphics.fill(paletteX + 6, rowY + 3, paletteX + 12, rowY + 9, headerColor(types.get(i).category()));
             graphics.drawString(font, Component.translatable(types.get(i).translationKey()), paletteX + 17, rowY + 2, TEXT_PRIMARY);
         }
+        graphics.pose().popPose();
     }
 }
